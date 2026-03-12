@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS Lambda — Configuration Export</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #f78166;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #ff4444;
+    --red-bg: rgba(255, 68, 68, 0.10);
+    --red-border: rgba(255, 68, 68, 0.30);
+    --green-bg: rgba(63, 185, 80, 0.08);
+    --green-border: rgba(63, 185, 80, 0.25);
+    --aws-orange: #FF9900;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 32px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .aws-badge {
+    background: var(--aws-orange);
+    color: #000;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .header-meta {
+    flex: 1;
+  }
+
+  .header-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .header-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .dot-red { background: var(--red); }
+  .dot-green { background: var(--green); }
+
+  .section {
+    margin-bottom: 24px;
+  }
+
+  .section-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .code-block-header {
+    background: var(--surface2);
+    padding: 8px 16px;
+    font-size: 11px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .code-inner {
+    padding: 16px;
+  }
+
+  .line {
+    display: flex;
+    align-items: flex-start;
+    padding: 1px 0;
+    border-radius: 3px;
+  }
+
+  .line-num {
+    color: var(--muted);
+    width: 28px;
+    min-width: 28px;
+    text-align: right;
+    margin-right: 16px;
+    user-select: none;
+    font-size: 11px;
+    padding-top: 1px;
+  }
+
+  .line-content {
+    flex: 1;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .line.finding {
+    background: var(--red-bg);
+    border-left: 3px solid var(--red);
+    margin-left: -4px;
+    padding-left: 4px;
+    border-radius: 0 3px 3px 0;
+  }
+
+  .line.compliant {
+    background: var(--green-bg);
+    border-left: 3px solid var(--green);
+    margin-left: -4px;
+    padding-left: 4px;
+    border-radius: 0 3px 3px 0;
+  }
+
+  .comment-finding {
+    color: var(--red);
+    font-weight: 500;
+  }
+
+  .comment-ok {
+    color: var(--green);
+  }
+
+  .key { color: #79c0ff; }
+  .val { color: #a5d6ff; }
+  .str { color: #a8d8a8; }
+  .str-bad { color: #ffa07a; }
+  .punct { color: var(--muted); }
+  .keyword { color: #ff7b72; }
+
+  .findings-summary {
+    background: var(--surface);
+    border: 1px solid var(--red-border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 28px;
+  }
+
+  .findings-summary-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--red);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .finding-row {
+    display: grid;
+    grid-template-columns: 24px 1fr 120px 160px;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    align-items: start;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  .finding-row:last-child { border-bottom: none; }
+
+  .finding-num {
+    color: var(--red);
+    font-weight: 600;
+  }
+
+  .finding-desc { color: var(--text); }
+
+  .severity {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 3px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    align-self: start;
+  }
+
+  .sev-critical { background: rgba(255,68,68,0.2); color: #ff4444; border: 1px solid rgba(255,68,68,0.4); }
+  .sev-high { background: rgba(255,160,50,0.2); color: #FFA032; border: 1px solid rgba(255,160,50,0.4); }
+  .sev-medium { background: rgba(210,153,34,0.2); color: #d29922; border: 1px solid rgba(210,153,34,0.4); }
+
+  .framework-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .tag {
+    font-size: 9px;
+    font-weight: 500;
+    padding: 1px 5px;
+    border-radius: 2px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="aws-badge">AWS</div>
+  <div class="header-meta">
+    <div class="header-title">Lambda Function — Configuration Export</div>
+    <div class="header-sub">Function: payment-processor-prod &nbsp;|&nbsp; Region: us-east-1 &nbsp;|&nbsp; Export generated: 2025-03-01T14:22:11Z</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="dot dot-red"></div> Finding</div>
+    <div class="legend-item"><div class="dot dot-green"></div> Compliant</div>
+  </div>
+</div>
+
+<!-- FUNCTION CONFIGURATION -->
+<div class="section">
+  <div class="section-label">Function Configuration</div>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>aws lambda get-function-configuration --function-name payment-processor-prod</span>
+      <span>JSON</span>
+    </div>
+    <div class="code-inner">
+
+      <div class="line"><span class="line-num">1</span><span class="line-content"><span class="punct">{</span></span></div>
+      <div class="line compliant"><span class="line-num">2</span><span class="line-content">  <span class="key">"FunctionName"</span><span class="punct">:</span> <span class="str">"payment-processor-prod"</span><span class="punct">,</span> <span class="comment-ok">// OK: descriptive function name</span></span></div>
+      <div class="line finding"><span class="line-num">3</span><span class="line-content">  <span class="key">"Runtime"</span><span class="punct">:</span> <span class="str-bad">"python3.8"</span><span class="punct">,</span> <span class="comment-finding">// FINDING: Python 3.8 reached EOL — deprecated runtime; upgrade to python3.12</span></span></div>
+      <div class="line compliant"><span class="line-num">4</span><span class="line-content">  <span class="key">"Timeout"</span><span class="punct">:</span> <span class="val">30</span><span class="punct">,</span> <span class="comment-ok">// OK: explicit timeout configured (30s)</span></span></div>
+      <div class="line compliant"><span class="line-num">5</span><span class="line-content">  <span class="key">"MemorySize"</span><span class="punct">:</span> <span class="val">512</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num">6</span><span class="line-content">  <span class="key">"Role"</span><span class="punct">:</span> <span class="str-bad">"arn:aws:iam::123456789012:role/lambda-shared-execution-role"</span><span class="punct">,</span> <span class="comment-finding">// FINDING: shared role used across multiple functions — violates per-function least privilege</span></span></div>
+      <div class="line finding"><span class="line-num">7</span><span class="line-content">  <span class="key">"ReservedConcurrentExecutions"</span><span class="punct">:</span> <span class="str-bad">-1</span><span class="punct">,</span> <span class="comment-finding">// FINDING: -1 means no concurrency limit set — unbounded scaling risk</span></span></div>
+      <div class="line compliant"><span class="line-num">8</span><span class="line-content">  <span class="key">"TracingConfig"</span><span class="punct">:</span> <span class="punct">{</span> <span class="key">"Mode"</span><span class="punct">:</span> <span class="str">"Active"</span> <span class="punct">}</span><span class="punct">,</span> <span class="comment-ok">// OK: X-Ray tracing enabled</span></span></div>
+      <div class="line"><span class="line-num">9</span><span class="line-content"><span class="punct">}</span></span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ENVIRONMENT VARIABLES -->
+<div class="section">
+  <div class="section-label">Environment Variables</div>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>aws lambda get-function-configuration --query "Environment.Variables"</span>
+      <span>JSON</span>
+    </div>
+    <div class="code-inner">
+
+      <div class="line"><span class="line-num">1</span><span class="line-content"><span class="punct">{</span></span></div>
+      <div class="line compliant"><span class="line-num">2</span><span class="line-content">  <span class="key">"DB_HOST"</span><span class="punct">:</span> <span class="str">"10.0.1.55"</span><span class="punct">,</span> <span class="comment-ok">// OK: non-sensitive connection endpoint</span></span></div>
+      <div class="line compliant"><span class="line-num">3</span><span class="line-content">  <span class="key">"DB_NAME"</span><span class="punct">:</span> <span class="str">"payments_db"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num">4</span><span class="line-content">  <span class="key">"DB_PASSWORD"</span><span class="punct">:</span> <span class="str-bad">"Tr0ub4dor&amp;3!xQ9"</span><span class="punct">,</span> <span class="comment-finding">// FINDING: plaintext database password — must be stored in AWS Secrets Manager</span></span></div>
+      <div class="line finding"><span class="line-num">5</span><span class="line-content">  <span class="key">"STRIPE_API_KEY"</span><span class="punct">:</span> <span class="str-bad">"sk_live_4xKj8mN2pQrT9vW1"</span><span class="punct">,</span> <span class="comment-finding">// FINDING: live payment API key in plaintext — CRITICAL; rotate immediately + move to Secrets Manager</span></span></div>
+      <div class="line compliant"><span class="line-num">6</span><span class="line-content">  <span class="key">"LOG_LEVEL"</span><span class="punct">:</span> <span class="str">"INFO"</span> <span class="comment-ok">// OK: non-sensitive config value</span></span></div>
+      <div class="line"><span class="line-num">7</span><span class="line-content"><span class="punct">}</span></span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- IAM ROLE POLICY -->
+<div class="section">
+  <div class="section-label">IAM Execution Role Policy</div>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>aws iam get-role-policy --role-name lambda-shared-execution-role --policy-name payment-processor-policy</span>
+      <span>JSON</span>
+    </div>
+    <div class="code-inner">
+
+      <div class="line"><span class="line-num">1</span><span class="line-content"><span class="punct">{</span></span></div>
+      <div class="line"><span class="line-num">2</span><span class="line-content">  <span class="key">"Version"</span><span class="punct">:</span> <span class="str">"2012-10-17"</span><span class="punct">,</span></span></div>
+      <div class="line"><span class="line-num">3</span><span class="line-content">  <span class="key">"Statement"</span><span class="punct">:</span> <span class="punct">[</span></span></div>
+      <div class="line"><span class="line-num">4</span><span class="line-content">    <span class="punct">{</span></span></div>
+      <div class="line compliant"><span class="line-num">5</span><span class="line-content">      <span class="key">"Effect"</span><span class="punct">:</span> <span class="str">"Allow"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num">6</span><span class="line-content">      <span class="key">"Action"</span><span class="punct">:</span> <span class="punct">[</span><span class="str-bad">"s3:*"</span><span class="punct">,</span> <span class="str-bad">"dynamodb:*"</span><span class="punct">,</span> <span class="str-bad">"sqs:*"</span><span class="punct">]</span><span class="punct">,</span> <span class="comment-finding">// FINDING: wildcard actions on S3, DynamoDB, SQS — must specify minimum required actions only</span></span></div>
+      <div class="line finding"><span class="line-num">7</span><span class="line-content">      <span class="key">"Resource"</span><span class="punct">:</span> <span class="str-bad">"*"</span> <span class="comment-finding">// FINDING: wildcard resource — policy grants access to ALL resources in account, not just payment-related ones</span></span></div>
+      <div class="line"><span class="line-num">8</span><span class="line-content">    <span class="punct">}</span><span class="punct">,</span></span></div>
+      <div class="line"><span class="line-num">9</span><span class="line-content">    <span class="punct">{</span></span></div>
+      <div class="line finding"><span class="line-num">10</span><span class="line-content">      <span class="key">"Action"</span><span class="punct">:</span> <span class="punct">[</span><span class="str-bad">"sts:AssumeRole"</span><span class="punct">]</span><span class="punct">,</span> <span class="comment-finding">// FINDING: function can assume other roles — privilege escalation path; remove unless explicitly required and documented</span></span></div>
+      <div class="line finding"><span class="line-num">11</span><span class="line-content">      <span class="key">"Resource"</span><span class="punct">:</span> <span class="str-bad">"arn:aws:iam::*:role/admin-*"</span> <span class="comment-finding">// FINDING: can assume any admin-prefixed role in any account — critical lateral movement risk</span></span></div>
+      <div class="line"><span class="line-num">12</span><span class="line-content">    <span class="punct">}</span></span></div>
+      <div class="line"><span class="line-num">13</span><span class="line-content">  <span class="punct">]</span></span></div>
+      <div class="line"><span class="line-num">14</span><span class="line-content"><span class="punct">}</span></span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- VPC & NETWORK -->
+<div class="section">
+  <div class="section-label">VPC &amp; Network Configuration</div>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>aws ec2 describe-security-groups --group-ids sg-0a1b2c3d4e5f / aws lambda get-function-configuration --query "VpcConfig"</span>
+      <span>JSON</span>
+    </div>
+    <div class="code-inner">
+
+      <div class="line"><span class="line-num">1</span><span class="line-content"><span class="comment-ok">// VPC Configuration</span></span></div>
+      <div class="line"><span class="line-num">2</span><span class="line-content"><span class="punct">{</span></span></div>
+      <div class="line compliant"><span class="line-num">3</span><span class="line-content">  <span class="key">"VpcId"</span><span class="punct">:</span> <span class="str">"vpc-0f1a2b3c4d"</span><span class="punct">,</span> <span class="comment-ok">// OK: function is deployed inside a VPC</span></span></div>
+      <div class="line compliant"><span class="line-num">4</span><span class="line-content">  <span class="key">"SubnetIds"</span><span class="punct">:</span> <span class="punct">[</span><span class="str">"subnet-private-1a"</span><span class="punct">]</span><span class="punct">,</span> <span class="comment-ok">// OK: private subnet (no direct internet gateway)</span></span></div>
+      <div class="line"><span class="line-num">5</span><span class="line-content">  <span class="key">"SecurityGroupIds"</span><span class="punct">:</span> <span class="punct">[</span><span class="str">"sg-0a1b2c3d4e5f"</span><span class="punct">]</span></span></div>
+      <div class="line"><span class="line-num">6</span><span class="line-content"><span class="punct">}</span></span></div>
+      <div class="line"><span class="line-num">7</span><span class="line-content"></span></div>
+      <div class="line"><span class="line-num">8</span><span class="line-content"><span class="comment-ok">// Security Group Rules — sg-0a1b2c3d4e5f</span></span></div>
+      <div class="line"><span class="line-num">9</span><span class="line-content"><span class="key">"IpPermissions"</span><span class="punct">:</span> <span class="punct">[</span></span></div>
+      <div class="line finding"><span class="line-num">10</span><span class="line-content">  <span class="punct">{</span> <span class="key">"IpProtocol"</span><span class="punct">:</span> <span class="str-bad">"tcp"</span><span class="punct">,</span> <span class="key">"FromPort"</span><span class="punct">:</span> <span class="val">443</span><span class="punct">,</span> <span class="key">"CidrIp"</span><span class="punct">:</span> <span class="str-bad">"0.0.0.0/0"</span> <span class="punct">}</span><span class="punct">,</span> <span class="comment-finding">// FINDING: inbound 0.0.0.0/0 — unrestricted IPv4 access to function handling PII/payment data</span></span></div>
+      <div class="line finding"><span class="line-num">11</span><span class="line-content">  <span class="punct">{</span> <span class="key">"IpProtocol"</span><span class="punct">:</span> <span class="str-bad">"tcp"</span><span class="punct">,</span> <span class="key">"FromPort"</span><span class="punct">:</span> <span class="val">443</span><span class="punct">,</span> <span class="key">"CidrIpv6"</span><span class="punct">:</span> <span class="str-bad">"::/0"</span> <span class="punct">}</span> <span class="comment-finding">// FINDING: inbound ::/0 — unrestricted IPv6 access; restrict to known source CIDR ranges only</span></span></div>
+      <div class="line"><span class="line-num">12</span><span class="line-content"><span class="punct">]</span><span class="punct">,</span></span></div>
+      <div class="line"><span class="line-num">13</span><span class="line-content"><span class="key">"IpPermissionsEgress"</span><span class="punct">:</span> <span class="punct">[</span></span></div>
+      <div class="line finding"><span class="line-num">14</span><span class="line-content">  <span class="punct">{</span> <span class="key">"IpProtocol"</span><span class="punct">:</span> <span class="str-bad">"-1"</span><span class="punct">,</span> <span class="key">"CidrIp"</span><span class="punct">:</span> <span class="str-bad">"0.0.0.0/0"</span> <span class="punct">}</span> <span class="comment-finding">// FINDING: unrestricted outbound to all destinations — data exfiltration risk; restrict to required service endpoints only</span></span></div>
+      <div class="line"><span class="line-num">15</span><span class="line-content"><span class="punct">]</span></span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- FINDINGS SUMMARY -->
+<div class="findings-summary">
+  <div class="findings-summary-title">&#9888; Assessment Findings Summary — 8 Findings Identified</div>
+
+  <div class="finding-row" style="font-size:10px; color: var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; padding-bottom:6px; border-bottom: 1px solid var(--border);">
+    <span>#</span><span>Finding</span><span>Severity</span><span>Framework Controls</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">1</span>
+    <span class="finding-desc">Deprecated runtime: python3.8 (EOL)</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC7.1</span><span class="tag">PCI 6.2.4</span><span class="tag">FedRAMP CM-6</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">2</span>
+    <span class="finding-desc">Shared execution role across multiple functions</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.1</span><span class="tag">ISO A.9.4</span><span class="tag">CMMC AC.2.006</span><span class="tag">PCI 7.2</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">3</span>
+    <span class="finding-desc">No reserved concurrency limit configured</span>
+    <span><div class="severity sev-medium">Medium</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC7.1</span><span class="tag">ISO A.12.1</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">4</span>
+    <span class="finding-desc">Plaintext DB_PASSWORD in environment variables</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.1</span><span class="tag">ISO A.9.4.3</span><span class="tag">HIPAA §164.312(d)</span><span class="tag">PCI 6.2.4</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">5</span>
+    <span class="finding-desc">Live STRIPE_API_KEY in plaintext — rotate immediately</span>
+    <span><div class="severity sev-critical">Critical</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.1</span><span class="tag">CMMC IA.1.076</span><span class="tag">HIPAA §164.312(d)</span><span class="tag">PCI 8.3.2</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">6</span>
+    <span class="finding-desc">Wildcard actions (s3:*, dynamodb:*, sqs:*) in IAM policy</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.3</span><span class="tag">ISO A.9.4</span><span class="tag">FedRAMP AC-6</span><span class="tag">PCI 7.2</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">7</span>
+    <span class="finding-desc">sts:AssumeRole permission on admin-* roles — privilege escalation path</span>
+    <span><div class="severity sev-critical">Critical</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.6</span><span class="tag">ISO A.9.4</span><span class="tag">HIPAA §164.312(a)(1)</span><span class="tag">FedRAMP AC-6</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">8</span>
+    <span class="finding-desc">Inbound 0.0.0.0/0 and ::/0; unrestricted outbound egress</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.6</span><span class="tag">ISO A.13.1</span><span class="tag">CMMC SC.3.177</span><span class="tag">PCI 1.2.1</span></div>
+  </div>
+
+</div>
+
+</body>
+</html>

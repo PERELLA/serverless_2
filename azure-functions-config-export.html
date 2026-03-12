@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azure Functions — Configuration Export</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --red: #ff4444;
+    --red-bg: rgba(255, 68, 68, 0.10);
+    --red-border: rgba(255, 68, 68, 0.30);
+    --green: #3fb950;
+    --green-bg: rgba(63, 185, 80, 0.08);
+    --green-border: rgba(63, 185, 80, 0.25);
+    --azure-blue: #0078d4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 32px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .azure-badge {
+    background: var(--azure-blue);
+    color: #fff;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .header-meta { flex: 1; }
+
+  .header-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .header-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-red { background: var(--red); }
+  .dot-green { background: var(--green); }
+
+  .section { margin-bottom: 24px; }
+
+  .section-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .code-block-header {
+    background: var(--surface2);
+    padding: 8px 16px;
+    font-size: 11px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .code-inner { padding: 16px; }
+
+  .line {
+    display: flex;
+    align-items: flex-start;
+    padding: 1px 0;
+    border-radius: 3px;
+  }
+
+  .line-num {
+    color: var(--muted);
+    width: 28px;
+    min-width: 28px;
+    text-align: right;
+    margin-right: 16px;
+    user-select: none;
+    font-size: 11px;
+    padding-top: 1px;
+  }
+
+  .line-content { flex: 1; white-space: pre-wrap; word-break: break-all; }
+
+  .line.finding {
+    background: var(--red-bg);
+    border-left: 3px solid var(--red);
+    margin-left: -4px;
+    padding-left: 4px;
+    border-radius: 0 3px 3px 0;
+  }
+
+  .line.compliant {
+    background: var(--green-bg);
+    border-left: 3px solid var(--green);
+    margin-left: -4px;
+    padding-left: 4px;
+    border-radius: 0 3px 3px 0;
+  }
+
+  .comment-finding { color: var(--red); font-weight: 500; }
+  .comment-ok { color: var(--green); }
+  .key { color: #79c0ff; }
+  .val { color: #a5d6ff; }
+  .str { color: #a8d8a8; }
+  .str-bad { color: #ffa07a; }
+  .punct { color: var(--muted); }
+
+  .findings-summary {
+    background: var(--surface);
+    border: 1px solid var(--red-border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 28px;
+  }
+
+  .findings-summary-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--red);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .finding-row {
+    display: grid;
+    grid-template-columns: 24px 1fr 120px 160px;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    align-items: start;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  .finding-row:last-child { border-bottom: none; }
+  .finding-num { color: var(--red); font-weight: 600; }
+
+  .severity {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 3px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    align-self: start;
+  }
+
+  .sev-critical { background: rgba(255,68,68,0.2); color: #ff4444; border: 1px solid rgba(255,68,68,0.4); }
+  .sev-high { background: rgba(255,160,50,0.2); color: #FFA032; border: 1px solid rgba(255,160,50,0.4); }
+  .sev-medium { background: rgba(210,153,34,0.2); color: #d29922; border: 1px solid rgba(210,153,34,0.4); }
+
+  .framework-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+
+  .tag {
+    font-size: 9px;
+    font-weight: 500;
+    padding: 1px 5px;
+    border-radius: 2px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="azure-badge">Azure</div>
+  <div class="header-meta">
+    <div class="header-title">Function App — Configuration Export</div>
+    <div class="header-sub">App: appt-processor-prod &nbsp;|&nbsp; Subscription: prod-healthcare-sub &nbsp;|&nbsp; Resource Group: rg-healthcare-prod &nbsp;|&nbsp; Export: 2025-03-01T14:22:11Z</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="dot dot-red"></div> Finding</div>
+    <div class="legend-item"><div class="dot dot-green"></div> Compliant</div>
+  </div>
+</div>
+
+<!-- FUNCTION APP CONFIGURATION -->
+<div class="section">
+  <div class="section-label">Function App Configuration</div>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>az functionapp show --name appt-processor-prod --resource-group rg-healthcare-prod</span>
+      <span>JSON</span>
+    </div>
+    <div class="code-inner">
+
+      <div class="line"><span class="line-num">1</span><span class="line-content"><span class="punct">{</span></span></div>
+      <div class="line compliant"><span class="line-num">2</span><span class="line-content">  <span class="key">"name"</span><span class="punct">:</span> <span class="str">"appt-processor-prod"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num">3</span><span class="line-content">  <span class="key">"siteConfig"</span><span class="punct">:</span> <span class="punct">{</span> <span class="key">"httpsOnly"</span><span class="punct">:</span> <span class="str-bad">false</span> <span class="punct">}</span><span class="punct">,</span> <span class="comment-finding">// FINDING: httpsOnly is false — HTTP requests permitted; must set httpsOnly: true for all functions handling PHI</span></span></div>
+      <div class="line finding"><span class="line-num">4</span><span class="line-content">  <span class="key">"siteConfig"</span><span class="punct">:</span> <span class="punct">{</span> <span class="key">"minTlsVersion"</span><span class="punct">:</span> <span class="str-bad">"1.0"</span> <span class="punct">}</span><span class="punct">,</span> <span class="comment-finding">// FINDING: TLS 1.0 allowed — deprecated protocol; minimum must be TLS 1.2</span></span></div>
+      <div class="line finding"><span class="line-num">5</span><span class="line-content">  <span class="key">"siteConfig"</span><span class="punct">:</span> <span class="punct">{</span> <span class="key">"functionAppScaleLimit"</span><span class="punct">:</span> <span class="str-bad">0</span> <span class="punct">}</span><span class="punct">,</span> <span class="comment-finding">// FINDING: 0 means no scale limit configured — unbounded scaling; set explicit limit to prevent resource exhaustion</span></span></div>
+      <div class="line compliant"><span class="line-num">6</span><span class="line-content">  <span class="key">"siteConfig"</span><span class="punct">:</span> <span class="punct">{</span> <span class="key">"netFrameworkVersion"</span><span class="punct">:</span> <span class="str">"v8.0"</span> <span class="punct">}</span><span class="punct">,</span> <span class="comment-ok">// OK: current supported runtime version</span></span></div>
+      <div class="line compliant"><span class="line-num">7</span><span class="line-content">  <span class="key">"identity"</span><span class="punct">:</span> <span class="punct">{</span> <span class="key">"type"</span><span class="punct">:</span> <span class="str">"SystemAssigned"</span> <span class="punct">}</span> <span class="comment-ok">// OK: Managed Identity enabled (system-assigned) — no stored credentials</span></span></div>
+      <div class="line"><span class="line-num">8</span><span class="line-content"><span class="punct">}</span></span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- APPLICATION SETTINGS -->
+<div class="section">
+  <div class="section-label">Application Settings (Environment Variables)</div>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>az functionapp config appsettings list --name appt-processor-prod --resource-group rg-healthcare-prod</span>
+      <span>JSON</span>
+    </div>
+    <div class="code-inner">
+
+      <div class="line"><span class="line-num">1</span><span class="line-content"><span class="punct">[</span></span></div>
+      <div class="line compliant"><span class="line-num">2</span><span class="line-content">  <span class="punct">{</span> <span class="key">"name"</span><span class="punct">:</span> <span class="str">"FUNCTIONS_WORKER_RUNTIME"</span><span class="punct">,</span> <span class="key">"value"</span><span class="punct">:</span> <span class="str">"dotnet"</span> <span class="punct">}</span><span class="punct">,</span></span></div>
+      <div class="line compliant"><span class="line-num">3</span><span class="line-content">  <span class="punct">{</span> <span class="key">"name"</span><span class="punct">:</span> <span class="str">"APP_ENVIRONMENT"</span><span class="punct">,</span> <span class="key">"value"</span><span class="punct">:</span> <span class="str">"Production"</span> <span class="punct">}</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num">4</span><span class="line-content">  <span class="punct">{</span> <span class="key">"name"</span><span class="punct">:</span> <span class="str-bad">"DB_CONNECTION_STRING"</span><span class="punct">,</span> <span class="key">"value"</span><span class="punct">:</span> <span class="str-bad">"Server=db.internal;Database=appointments;User=svc_rw;Password=Prod@ss123!"</span> <span class="punct">}</span><span class="punct">,</span> <span class="comment-finding">// FINDING: plaintext connection string with embedded password — must use Key Vault reference: @Microsoft.KeyVault(SecretUri=...)</span></span></div>
+      <div class="line finding"><span class="line-num">5</span><span class="line-content">  <span class="punct">{</span> <span class="key">"name"</span><span class="punct">:</span> <span class="str-bad">"PAYMENT_API_KEY"</span><span class="punct">,</span> <span class="key">"value"</span><span class="punct">:</span> <span class="str-bad">"pk_live_AbCdEfGhIjKlMnOpQrStUvWx"</span> <span class="punct">}</span><span class="punct">,</span> <span class="comment-finding">// FINDING: live API key in plaintext app setting — CRITICAL; rotate now and migrate to Key Vault reference</span></span></div>
+      <div class="line compliant"><span class="line-num">6</span><span class="line-content">  <span class="punct">{</span> <span class="key">"name"</span><span class="punct">:</span> <span class="str">"STORAGE_ACCOUNT"</span><span class="punct">,</span> <span class="key">"value"</span><span class="punct">:</span> <span class="str">"@Microsoft.KeyVault(SecretUri=https://kv-prod.vault.azure.net/secrets/storage-conn)"</span> <span class="punct">}</span> <span class="comment-ok">// OK: Key Vault reference — correct secrets management pattern</span></span></div>
+      <div class="line"><span class="line-num">7</span><span class="line-content"><span class="punct">]</span></span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MANAGED IDENTITY & ROLE ASSIGNMENT -->
+<div class="section">
+  <div class="section-label">Managed Identity — Role Assignments</div>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>az role assignment list --assignee &lt;managed-identity-principal-id&gt; --all</span>
+      <span>JSON</span>
+    </div>
+    <div class="code-inner">
+
+      <div class="line"><span class="line-num">1</span><span class="line-content"><span class="punct">[</span></span></div>
+      <div class="line"><span class="line-num">2</span><span class="line-content">  <span class="punct">{</span></span></div>
+      <div class="line"><span class="line-num">3</span><span class="line-content">    <span class="key">"principalName"</span><span class="punct">:</span> <span class="str">"appt-processor-identity"</span><span class="punct">,</span></span></div>
+      <div class="line"><span class="line-num">4</span><span class="line-content">    <span class="key">"principalType"</span><span class="punct">:</span> <span class="str">"ServicePrincipal"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num">5</span><span class="line-content">    <span class="key">"roleDefinitionName"</span><span class="punct">:</span> <span class="str-bad">"Contributor"</span><span class="punct">,</span> <span class="comment-finding">// FINDING: Contributor role grants broad write access — must use a custom role scoped to specific required actions only</span></span></div>
+      <div class="line finding"><span class="line-num">6</span><span class="line-content">    <span class="key">"scope"</span><span class="punct">:</span> <span class="str-bad">"/subscriptions/a1b2c3d4-e5f6-7890-abcd-ef1234567890"</span> <span class="comment-finding">// FINDING: subscription-level scope — function can modify ANY resource in the subscription; scope must target the specific resource group or resource</span></span></div>
+      <div class="line"><span class="line-num">7</span><span class="line-content">  <span class="punct">}</span><span class="punct">,</span></span></div>
+      <div class="line"><span class="line-num">8</span><span class="line-content">  <span class="punct">{</span></span></div>
+      <div class="line compliant"><span class="line-num">9</span><span class="line-content">    <span class="key">"roleDefinitionName"</span><span class="punct">:</span> <span class="str">"Key Vault Secrets User"</span><span class="punct">,</span> <span class="comment-ok">// OK: appropriate built-in role for Key Vault secret read access</span></span></div>
+      <div class="line compliant"><span class="line-num">10</span><span class="line-content">    <span class="key">"scope"</span><span class="punct">:</span> <span class="str">"/subscriptions/.../resourceGroups/rg-healthcare-prod/providers/Microsoft.KeyVault/vaults/kv-prod"</span> <span class="comment-ok">// OK: scoped to specific Key Vault resource</span></span></div>
+      <div class="line"><span class="line-num">11</span><span class="line-content">  <span class="punct">}</span></span></div>
+      <div class="line"><span class="line-num">12</span><span class="line-content"><span class="punct">]</span></span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- NETWORK / VNET CONFIGURATION -->
+<div class="section">
+  <div class="section-label">VNet Integration &amp; NSG Rules</div>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>az functionapp vnet-integration list + az network nsg rule list --nsg-name nsg-appt-processor</span>
+      <span>JSON</span>
+    </div>
+    <div class="code-inner">
+
+      <div class="line"><span class="line-num">1</span><span class="line-content"><span class="comment-ok">// VNet Integration</span></span></div>
+      <div class="line compliant"><span class="line-num">2</span><span class="line-content"><span class="punct">{</span> <span class="key">"vnetResourceId"</span><span class="punct">:</span> <span class="str">"/subscriptions/.../virtualNetworks/vnet-prod"</span><span class="punct">,</span> <span class="key">"subnetResourceId"</span><span class="punct">:</span> <span class="str">"subnet-functions-private"</span> <span class="punct">}</span> <span class="comment-ok">// OK: VNet integration configured on private subnet</span></span></div>
+      <div class="line"><span class="line-num">3</span><span class="line-content"></span></div>
+      <div class="line"><span class="line-num">4</span><span class="line-content"><span class="comment-ok">// NSG Inbound Rules</span></span></div>
+      <div class="line finding"><span class="line-num">5</span><span class="line-content"><span class="punct">{</span> <span class="key">"name"</span><span class="punct">:</span> <span class="str-bad">"AllowAnyHTTPSInbound"</span><span class="punct">,</span> <span class="key">"sourceAddressPrefix"</span><span class="punct">:</span> <span class="str-bad">"*"</span><span class="punct">,</span> <span class="key">"destinationPortRange"</span><span class="punct">:</span> <span class="val">443</span><span class="punct">,</span> <span class="key">"access"</span><span class="punct">:</span> <span class="str-bad">"Allow"</span> <span class="punct">}</span> <span class="comment-finding">// FINDING: inbound from * (all sources) — restrict to known IP ranges or Azure Front Door service tag only</span></span></div>
+      <div class="line compliant"><span class="line-num">6</span><span class="line-content"><span class="punct">{</span> <span class="key">"name"</span><span class="punct">:</span> <span class="str">"DenyAllInbound"</span><span class="punct">,</span> <span class="key">"priority"</span><span class="punct">:</span> <span class="val">4096</span><span class="punct">,</span> <span class="key">"access"</span><span class="punct">:</span> <span class="str">"Deny"</span> <span class="punct">}</span> <span class="comment-ok">// OK: explicit deny-all as lowest-priority catch-all</span></span></div>
+      <div class="line"><span class="line-num">7</span><span class="line-content"></span></div>
+      <div class="line"><span class="line-num">8</span><span class="line-content"><span class="comment-ok">// NSG Outbound Rules</span></span></div>
+      <div class="line finding"><span class="line-num">9</span><span class="line-content"><span class="punct">{</span> <span class="key">"name"</span><span class="punct">:</span> <span class="str-bad">"AllowAnyOutbound"</span><span class="punct">,</span> <span class="key">"destinationAddressPrefix"</span><span class="punct">:</span> <span class="str-bad">"*"</span><span class="punct">,</span> <span class="key">"access"</span><span class="punct">:</span> <span class="str-bad">"Allow"</span> <span class="punct">}</span> <span class="comment-finding">// FINDING: unrestricted outbound to all destinations — data exfiltration risk; restrict to required service tags (Storage, SQL, KeyVault) only</span></span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- FINDINGS SUMMARY -->
+<div class="findings-summary">
+  <div class="findings-summary-title">&#9888; Assessment Findings Summary — 8 Findings Identified</div>
+
+  <div class="finding-row" style="font-size:10px; color: var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; padding-bottom:6px; border-bottom: 1px solid var(--border);">
+    <span>#</span><span>Finding</span><span>Severity</span><span>Framework Controls</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">1</span>
+    <span class="finding-desc">httpsOnly: false — HTTP requests permitted to PHI-handling function</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.7</span><span class="tag">HIPAA §164.312(e)</span><span class="tag">PCI 4.2.1</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">2</span>
+    <span class="finding-desc">Minimum TLS version set to 1.0 — deprecated protocol</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.7</span><span class="tag">FedRAMP SC-8</span><span class="tag">PCI 4.2.1</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">3</span>
+    <span class="finding-desc">No function scale limit — unbounded concurrency</span>
+    <span><div class="severity sev-medium">Medium</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC7.1</span><span class="tag">ISO A.12.1</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">4</span>
+    <span class="finding-desc">Plaintext DB_CONNECTION_STRING with embedded password</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">ISO A.9.4.3</span><span class="tag">HIPAA §164.312(d)</span><span class="tag">CMMC IA.1.076</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">5</span>
+    <span class="finding-desc">Live PAYMENT_API_KEY in plaintext app setting — rotate immediately</span>
+    <span><div class="severity sev-critical">Critical</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.1</span><span class="tag">HIPAA §164.312(d)</span><span class="tag">PCI 8.3.2</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">6</span>
+    <span class="finding-desc">Contributor role at subscription scope — over-permissioned managed identity</span>
+    <span><div class="severity sev-critical">Critical</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.3</span><span class="tag">ISO A.9.4</span><span class="tag">HIPAA §164.312(a)(1)</span><span class="tag">FedRAMP AC-6</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">7</span>
+    <span class="finding-desc">Inbound NSG rule allows all source IPs (*)</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.6</span><span class="tag">ISO A.13.1</span><span class="tag">CMMC SC.3.177</span><span class="tag">PCI 1.2.1</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">8</span>
+    <span class="finding-desc">Outbound NSG rule allows all destinations — exfiltration risk</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.6</span><span class="tag">ISO A.13.1</span><span class="tag">FedRAMP SC-7</span><span class="tag">PCI 1.3.2</span></div>
+  </div>
+
+</div>
+
+</body>
+</html>

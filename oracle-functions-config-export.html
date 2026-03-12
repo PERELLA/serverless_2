@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oracle Cloud Functions — Configuration Export</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --red: #ff4444;
+    --red-bg: rgba(255, 68, 68, 0.10);
+    --red-border: rgba(255, 68, 68, 0.30);
+    --green: #3fb950;
+    --green-bg: rgba(63, 185, 80, 0.08);
+    --oracle-red: #C74634;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 32px;
+    min-height: 100vh;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .oracle-badge {
+    background: var(--oracle-red);
+    color: #fff;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .header-meta { flex: 1; }
+
+  .header-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .header-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    font-size: 11px;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-red { background: var(--red); }
+  .dot-green { background: var(--green); }
+
+  .section { margin-bottom: 24px; }
+
+  .section-label {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+
+  .code-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .code-block-header {
+    background: var(--surface2);
+    padding: 8px 16px;
+    font-size: 11px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .code-inner { padding: 16px; }
+
+  .line {
+    display: flex;
+    align-items: flex-start;
+    padding: 1px 0;
+    border-radius: 3px;
+  }
+
+  .line-num {
+    color: var(--muted);
+    width: 28px;
+    min-width: 28px;
+    text-align: right;
+    margin-right: 16px;
+    user-select: none;
+    font-size: 11px;
+    padding-top: 1px;
+  }
+
+  .line-content { flex: 1; white-space: pre-wrap; word-break: break-all; }
+
+  .line.finding {
+    background: rgba(255, 68, 68, 0.10);
+    border-left: 3px solid var(--red);
+    margin-left: -4px;
+    padding-left: 4px;
+    border-radius: 0 3px 3px 0;
+  }
+
+  .line.compliant {
+    background: rgba(63, 185, 80, 0.08);
+    border-left: 3px solid var(--green);
+    margin-left: -4px;
+    padding-left: 4px;
+    border-radius: 0 3px 3px 0;
+  }
+
+  .comment-finding { color: var(--red); font-weight: 500; }
+  .comment-ok { color: var(--green); }
+  .key { color: #79c0ff; }
+  .val { color: #a5d6ff; }
+  .str { color: #a8d8a8; }
+  .str-bad { color: #ffa07a; }
+  .punct { color: var(--muted); }
+
+  .findings-summary {
+    background: var(--surface);
+    border: 1px solid var(--red-border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 28px;
+  }
+
+  .findings-summary-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--red);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .finding-row {
+    display: grid;
+    grid-template-columns: 24px 1fr 120px 160px;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    align-items: start;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  .finding-row:last-child { border-bottom: none; }
+  .finding-num { color: var(--red); font-weight: 600; }
+
+  .severity {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 3px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    align-self: start;
+  }
+
+  .sev-critical { background: rgba(255,68,68,0.2); color: #ff4444; border: 1px solid rgba(255,68,68,0.4); }
+  .sev-high { background: rgba(255,160,50,0.2); color: #FFA032; border: 1px solid rgba(255,160,50,0.4); }
+  .sev-medium { background: rgba(210,153,34,0.2); color: #d29922; border: 1px solid rgba(210,153,34,0.4); }
+
+  .framework-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+
+  .tag {
+    font-size: 9px;
+    font-weight: 500;
+    padding: 1px 5px;
+    border-radius: 2px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="oracle-badge">Oracle</div>
+  <div class="header-meta">
+    <div class="header-title">OCI Function — Configuration Export</div>
+    <div class="header-sub">Function: inventory-sync-fn &nbsp;|&nbsp; Application: inventory-app-prod &nbsp;|&nbsp; Compartment: prod-compartment &nbsp;|&nbsp; Export: 2025-03-01T14:22:11Z</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="dot dot-red"></div> Finding</div>
+    <div class="legend-item"><div class="dot dot-green"></div> Compliant</div>
+  </div>
+</div>
+
+<!-- FUNCTION CONFIGURATION -->
+<div class="section">
+  <div class="section-label">Function Configuration</div>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>oci fn function get --function-id ocid1.fnfunc.oc1.iad.aaaa... | jq .</span>
+      <span>JSON</span>
+    </div>
+    <div class="code-inner">
+
+      <div class="line"><span class="line-num">1</span><span class="line-content"><span class="punct">{</span></span></div>
+      <div class="line compliant"><span class="line-num">2</span><span class="line-content">  <span class="key">"display-name"</span><span class="punct">:</span> <span class="str">"inventory-sync-fn"</span><span class="punct">,</span></span></div>
+      <div class="line compliant"><span class="line-num">3</span><span class="line-content">  <span class="key">"image"</span><span class="punct">:</span> <span class="str">"iad.ocir.io/tenancyname/inventory-fn:2.1.4"</span><span class="punct">,</span> <span class="comment-ok">// OK: pinned to specific image version tag (not :latest)</span></span></div>
+      <div class="line finding"><span class="line-num">4</span><span class="line-content">  <span class="key">"timeout-in-seconds"</span><span class="punct">:</span> <span class="str-bad">300</span><span class="punct">,</span> <span class="comment-finding">// FINDING: 300s (5 min) timeout is appropriate for batch; however note — verify this is not masking runaway executions; document intent in change record</span></span></div>
+      <div class="line compliant"><span class="line-num">5</span><span class="line-content">  <span class="key">"memory-in-mbs"</span><span class="punct">:</span> <span class="str">"512"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num">6</span><span class="line-content">  <span class="key">"trace-config"</span><span class="punct">:</span> <span class="punct">{</span> <span class="key">"is-enabled"</span><span class="punct">:</span> <span class="str-bad">false</span> <span class="punct">}</span><span class="punct">,</span> <span class="comment-finding">// FINDING: tracing disabled — distributed tracing must be enabled; required for incident response and forensic investigation in all applicable frameworks</span></span></div>
+      <div class="line compliant"><span class="line-num">7</span><span class="line-content">  <span class="key">"lifecycle-state"</span><span class="punct">:</span> <span class="str">"ACTIVE"</span></span></div>
+      <div class="line"><span class="line-num">8</span><span class="line-content"><span class="punct">}</span></span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- FUNCTION CONFIG / ENVIRONMENT VARIABLES -->
+<div class="section">
+  <div class="section-label">Function Configuration Variables (Environment)</div>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>oci fn function get --function-id ocid1.fnfunc... --query "data.config"</span>
+      <span>JSON</span>
+    </div>
+    <div class="code-inner">
+
+      <div class="line"><span class="line-num">1</span><span class="line-content"><span class="punct">{</span></span></div>
+      <div class="line compliant"><span class="line-num">2</span><span class="line-content">  <span class="key">"DB_HOST"</span><span class="punct">:</span> <span class="str">"10.0.3.22"</span><span class="punct">,</span> <span class="comment-ok">// OK: non-sensitive endpoint value</span></span></div>
+      <div class="line compliant"><span class="line-num">3</span><span class="line-content">  <span class="key">"APP_ENV"</span><span class="punct">:</span> <span class="str">"production"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num">4</span><span class="line-content">  <span class="key">"DB_PASSWORD"</span><span class="punct">:</span> <span class="str-bad">"0r4cl3P@ssw0rd!"</span><span class="punct">,</span> <span class="comment-finding">// FINDING: database password hardcoded in function config — must be stored in OCI Vault; reference via Dynamic Group + policy granting secretbundle:read to vault secret OCID</span></span></div>
+      <div class="line finding"><span class="line-num">5</span><span class="line-content">  <span class="key">"OCI_API_KEY"</span><span class="punct">:</span> <span class="str-bad">"ocid1.apikey.oc1.iad.aaaaabbbcccdddeee12345"</span><span class="punct">,</span> <span class="comment-finding">// FINDING: static OCI API key in config — CRITICAL; functions must authenticate via Dynamic Groups, not static API keys; rotate and remove immediately</span></span></div>
+      <div class="line compliant"><span class="line-num">6</span><span class="line-content">  <span class="key">"LOG_LEVEL"</span><span class="punct">:</span> <span class="str">"WARN"</span> <span class="comment-ok">// OK: non-sensitive config flag</span></span></div>
+      <div class="line"><span class="line-num">7</span><span class="line-content"><span class="punct">}</span></span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- DYNAMIC GROUP & POLICY -->
+<div class="section">
+  <div class="section-label">Dynamic Group Membership &amp; IAM Policies</div>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>oci iam dynamic-group get --dynamic-group-id ocid1.dynamicgroup... + oci iam policy list --compartment-id ocid1.compartment...</span>
+      <span>HCL / Policy</span>
+    </div>
+    <div class="code-inner">
+
+      <div class="line"><span class="line-num">1</span><span class="line-content"><span class="comment-ok">// Dynamic Group Definition</span></span></div>
+      <div class="line compliant"><span class="line-num">2</span><span class="line-content"><span class="key">matching-rule</span><span class="punct">:</span> <span class="str">"ALL {resource.type = 'fnfunc', resource.compartment.id = 'ocid1.compartment.oc1.iad.prod-compartment'}"</span> <span class="comment-ok">// OK: Dynamic Group correctly scoped to functions in the production compartment only</span></span></div>
+      <div class="line"><span class="line-num">3</span><span class="line-content"></span></div>
+      <div class="line"><span class="line-num">4</span><span class="line-content"><span class="comment-ok">// IAM Policies attached to Dynamic Group</span></span></div>
+      <div class="line finding"><span class="line-num">5</span><span class="line-content"><span class="key">statement</span><span class="punct">:</span> <span class="str-bad">"allow dynamic-group inventory-fn-group to manage all-resources in tenancy"</span> <span class="comment-finding">// FINDING: 'manage all-resources in tenancy' grants complete administrative access — scope must be reduced to specific resource types and the production compartment only</span></span></div>
+      <div class="line finding"><span class="line-num">6</span><span class="line-content"><span class="key">statement</span><span class="punct">:</span> <span class="str-bad">"allow dynamic-group inventory-fn-group to use secret-family in tenancy"</span> <span class="comment-finding">// FINDING: 'secret-family in tenancy' grants access to all vault secrets across all compartments — scope to: 'read secret-bundle in compartment prod-compartment where target.vault.id = &lt;specific-vault-ocid&gt;'</span></span></div>
+      <div class="line compliant"><span class="line-num">7</span><span class="line-content"><span class="key">statement</span><span class="punct">:</span> <span class="str">"allow dynamic-group inventory-fn-group to use log-content in compartment prod-compartment"</span> <span class="comment-ok">// OK: scoped to specific compartment with minimum required log-content permission</span></span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- NETWORK / SECURITY LIST -->
+<div class="section">
+  <div class="section-label">VCN &amp; Security List Rules</div>
+  <div class="code-block">
+    <div class="code-block-header">
+      <span>oci network security-list get --security-list-id ocid1.securitylist... | jq '.data["ingress-security-rules", "egress-security-rules"]'</span>
+      <span>JSON</span>
+    </div>
+    <div class="code-inner">
+
+      <div class="line"><span class="line-num">1</span><span class="line-content"><span class="comment-ok">// VCN / Subnet Placement</span></span></div>
+      <div class="line compliant"><span class="line-num">2</span><span class="line-content"><span class="key">"subnet-id"</span><span class="punct">:</span> <span class="str">"ocid1.subnet.oc1.iad.private-functions-subnet"</span> <span class="comment-ok">// OK: function deployed in private subnet (no internet gateway attached)</span></span></div>
+      <div class="line"><span class="line-num">3</span><span class="line-content"></span></div>
+      <div class="line"><span class="line-num">4</span><span class="line-content"><span class="comment-ok">// Ingress Security Rules</span></span></div>
+      <div class="line finding"><span class="line-num">5</span><span class="line-content"><span class="punct">{</span> <span class="key">"protocol"</span><span class="punct">:</span> <span class="str-bad">"all"</span><span class="punct">,</span> <span class="key">"source"</span><span class="punct">:</span> <span class="str-bad">"0.0.0.0/0"</span><span class="punct">,</span> <span class="key">"is-stateless"</span><span class="punct">:</span> <span class="str-bad">false</span> <span class="punct">}</span> <span class="comment-finding">// FINDING: all-protocol ingress from 0.0.0.0/0 — unrestricted inbound access; restrict to specific source CIDR and port 443 only</span></span></div>
+      <div class="line"><span class="line-num">6</span><span class="line-content"></span></div>
+      <div class="line"><span class="line-num">7</span><span class="line-content"><span class="comment-ok">// Egress Security Rules</span></span></div>
+      <div class="line finding"><span class="line-num">8</span><span class="line-content"><span class="punct">{</span> <span class="key">"protocol"</span><span class="punct">:</span> <span class="str-bad">"all"</span><span class="punct">,</span> <span class="key">"destination"</span><span class="punct">:</span> <span class="str-bad">"0.0.0.0/0"</span><span class="punct">,</span> <span class="key">"is-stateless"</span><span class="punct">:</span> <span class="str-bad">false</span> <span class="punct">}</span> <span class="comment-finding">// FINDING: unrestricted outbound to all destinations — potential data exfiltration path; restrict to required OCI service endpoints via Service Gateway</span></span></div>
+      <div class="line compliant"><span class="line-num">9</span><span class="line-content"><span class="punct">{</span> <span class="key">"protocol"</span><span class="punct">:</span> <span class="str">"6"</span><span class="punct">,</span> <span class="key">"destination"</span><span class="punct">:</span> <span class="str">"all-iad-services-in-oracle-services-network"</span><span class="punct">,</span> <span class="key">"destination-type"</span><span class="punct">:</span> <span class="str">"SERVICE_CIDR_BLOCK"</span> <span class="punct">}</span> <span class="comment-ok">// OK: Service Gateway rule for internal OCI service connectivity — correct pattern</span></span></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- FINDINGS SUMMARY -->
+<div class="findings-summary">
+  <div class="findings-summary-title">&#9888; Assessment Findings Summary — 9 Findings Identified</div>
+
+  <div class="finding-row" style="font-size:10px; color: var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; padding-bottom:6px; border-bottom: 1px solid var(--border);">
+    <span>#</span><span>Finding</span><span>Severity</span><span>Framework Controls</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">1</span>
+    <span class="finding-desc">Timeout 300s — no change record documenting business justification</span>
+    <span><div class="severity sev-medium">Medium</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC8.1</span><span class="tag">ISO A.12.1</span><span class="tag">FedRAMP CM-3</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">2</span>
+    <span class="finding-desc">Distributed tracing disabled — limits incident response capability</span>
+    <span><div class="severity sev-medium">Medium</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC7.2</span><span class="tag">ISO A.12.4</span><span class="tag">FedRAMP AU-12</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">3</span>
+    <span class="finding-desc">DB_PASSWORD hardcoded in function config — must use OCI Vault</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.1</span><span class="tag">ISO A.9.4.3</span><span class="tag">CMMC IA.1.076</span><span class="tag">PCI 6.2.4</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">4</span>
+    <span class="finding-desc">Static OCI API key in config — rotate immediately; use Dynamic Group auth</span>
+    <span><div class="severity sev-critical">Critical</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.1</span><span class="tag">ISO A.9.4.3</span><span class="tag">HIPAA §164.312(d)</span><span class="tag">FedRAMP IA-5</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">5</span>
+    <span class="finding-desc">Dynamic Group policy: manage all-resources in tenancy</span>
+    <span><div class="severity sev-critical">Critical</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.3</span><span class="tag">ISO A.9.4</span><span class="tag">HIPAA §164.312(a)(1)</span><span class="tag">FedRAMP AC-6</span><span class="tag">PCI 7.2</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">6</span>
+    <span class="finding-desc">Vault policy: secret-family access across entire tenancy</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.3</span><span class="tag">ISO A.10.1</span><span class="tag">CMMC SC.3.177</span><span class="tag">PCI 7.2</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">7</span>
+    <span class="finding-desc">Ingress security list: all-protocol from 0.0.0.0/0</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.6</span><span class="tag">ISO A.13.1</span><span class="tag">CMMC SC.3.177</span><span class="tag">PCI 1.2.1</span></div>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">8</span>
+    <span class="finding-desc">Egress security list: all-protocol to 0.0.0.0/0 — exfiltration risk</span>
+    <span><div class="severity sev-high">High</div></span>
+    <div class="framework-tags"><span class="tag">SOC 2 CC6.6</span><span class="tag">ISO A.13.1</span><span class="tag">FedRAMP SC-7</span><span class="tag">PCI 1.3.2</span></div>
+  </div>
+
+</div>
+
+</body>
+</html>

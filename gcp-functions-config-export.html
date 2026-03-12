@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCP Cloud Functions — Configuration Export</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; color: #e6edf3; font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.6; min-height: 100vh; padding: 32px; }
+  .header { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid #30363d; }
+  .gcp-badge { background: linear-gradient(135deg, #4285F4 0%, #34A853 100%); color: #fff; font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; font-size: 11px; padding: 4px 10px; border-radius: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .header-meta { flex: 1; }
+  .header-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 18px; font-weight: 600; color: #e6edf3; }
+  .header-sub { font-size: 11px; color: #8b949e; margin-top: 2px; }
+  .legend { display: flex; gap: 18px; font-size: 11px; font-family: 'IBM Plex Sans', sans-serif; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-red { background: #ff4444; } .dot-green { background: #3fb950; }
+  .section { margin-bottom: 24px; }
+  .section-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8b949e; margin-bottom: 8px; padding-left: 4px; }
+  .code-block { background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; }
+  .code-block-header { background: #1c2128; padding: 8px 16px; font-size: 11px; color: #8b949e; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+  .code-inner { padding: 16px; }
+  .line { display: flex; align-items: flex-start; padding: 1px 0; border-radius: 3px; }
+  .line-num { color: #8b949e; width: 28px; min-width: 28px; text-align: right; margin-right: 16px; user-select: none; font-size: 11px; padding-top: 1px; }
+  .line-content { flex: 1; white-space: pre-wrap; word-break: break-all; }
+  .line.finding { background: rgba(255,68,68,0.10); border-left: 3px solid #ff4444; margin-left: -4px; padding-left: 4px; border-radius: 0 3px 3px 0; }
+  .line.compliant { background: rgba(63,185,80,0.08); border-left: 3px solid #3fb950; margin-left: -4px; padding-left: 4px; border-radius: 0 3px 3px 0; }
+  .comment-finding { color: #ff4444; font-weight: 500; }
+  .comment-ok { color: #3fb950; }
+  .key { color: #79c0ff; } .val { color: #a5d6ff; } .str { color: #a8d8a8; } .str-bad { color: #ffa07a; } .punct { color: #8b949e; }
+  .findings-summary { background: #161b22; border: 1px solid rgba(255,68,68,0.30); border-radius: 8px; padding: 16px 20px; margin-top: 28px; }
+  .findings-summary-title { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 600; color: #ff4444; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 12px; }
+  .finding-header, .finding-row { display: grid; grid-template-columns: 24px 1fr 90px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid #30363d; font-size: 11px; align-items: start; font-family: 'IBM Plex Sans', sans-serif; }
+  .finding-header { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #8b949e; }
+  .finding-row:last-child { border-bottom: none; }
+  .finding-num { color: #ff4444; font-weight: 600; }
+  .finding-desc { color: #e6edf3; }
+  .finding-remediation { color: #8b949e; font-size: 10px; line-height: 1.4; }
+  .severity { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 3px; text-align: center; text-transform: uppercase; letter-spacing: 0.04em; align-self: start; }
+  .sev-critical { background: rgba(255,68,68,0.2); color: #ff4444; border: 1px solid rgba(255,68,68,0.4); }
+  .sev-high { background: rgba(255,160,50,0.2); color: #FFA032; border: 1px solid rgba(255,160,50,0.4); }
+  .sev-medium { background: rgba(210,153,34,0.2); color: #d29922; border: 1px solid rgba(210,153,34,0.4); }
+  .sev-low { background: rgba(63,185,80,0.15); color: #3fb950; border: 1px solid rgba(63,185,80,0.3); }
+  .framework-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag { font-size: 9px; font-weight: 500; padding: 1px 5px; border-radius: 2px; background: #1c2128; border: 1px solid #30363d; color: #8b949e; letter-spacing: 0.02em; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="gcp-badge">GCP</div>
+  <div class="header-meta">
+    <div class="header-title">Cloud Function — Configuration Export</div>
+    <div class="header-sub">Function: process-payments-v2 &nbsp;|&nbsp; Project: pci-prod-project &nbsp;|&nbsp; Region: us-central1 &nbsp;|&nbsp; Export: 2025-03-01T14:22:11Z</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="dot dot-red"></div> Finding</div>
+    <div class="legend-item"><div class="dot dot-green"></div> Compliant</div>
+  </div>
+</div>
+
+<!-- FUNCTION CONFIGURATION -->
+<div class="section">
+  <div class="section-label">Function Configuration</div>
+  <div class="code-block">
+    <div class="code-block-header"><span>gcloud functions describe process-payments-v2 --region us-central1 --format json</span><span>JSON</span></div>
+    <div class="code-inner">
+      <div class="line compliant"><span class="line-num">1</span><span class="line-content"><span class="key">"name"</span><span class="punct">:</span> <span class="str">"process-payments-v2"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num">2</span><span class="line-content"><span class="key">"runtime"</span><span class="punct">:</span> <span class="str-bad">"nodejs10"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num"></span><span class="line-content"><span class="comment-finding">// FINDING: Node.js 10 is EOL — reached end of life in 2021; upgrade to nodejs20 immediately; multiple known CVEs present in runtime</span></span></div>
+      <div class="line compliant"><span class="line-num">3</span><span class="line-content"><span class="key">"timeout"</span><span class="punct">:</span> <span class="str">"60s"</span><span class="punct">,</span></span></div>
+      <div class="line compliant"><span class="line-num"></span><span class="line-content"><span class="comment-ok">// OK: explicit timeout configured (60 seconds)</span></span></div>
+      <div class="line finding"><span class="line-num">4</span><span class="line-content"><span class="key">"maxInstances"</span><span class="punct">:</span> <span class="val">0</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num"></span><span class="line-content"><span class="comment-finding">// FINDING: 0 = no instance ceiling — unbounded scaling; can cause resource exhaustion and SIEM alert flooding; set explicit maxInstances</span></span></div>
+      <div class="line finding"><span class="line-num">5</span><span class="line-content"><span class="key">"ingressSettings"</span><span class="punct">:</span> <span class="str-bad">"ALLOW_ALL"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num"></span><span class="line-content"><span class="comment-finding">// FINDING: ALLOW_ALL permits public internet invocation — function directly reachable from any IP; change to ALLOW_INTERNAL_AND_GCLB to restrict to VPC and load balancer only</span></span></div>
+      <div class="line finding"><span class="line-num">6</span><span class="line-content"><span class="key">"vpcConnector"</span><span class="punct">:</span> <span class="val">null</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num"></span><span class="line-content"><span class="comment-finding">// FINDING: no VPC Connector — function egress is not routed through VPC; all outbound traffic goes via public internet; create and attach a Serverless VPC Access connector</span></span></div>
+      <div class="line compliant"><span class="line-num">7</span><span class="line-content"><span class="key">"httpsTrigger"</span><span class="punct">.</span><span class="key">"securityLevel"</span><span class="punct">:</span> <span class="str">"SECURE_ALWAYS"</span></span></div>
+      <div class="line compliant"><span class="line-num"></span><span class="line-content"><span class="comment-ok">// OK: HTTPS enforced via SECURE_ALWAYS — all HTTP requests redirected to HTTPS</span></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ENVIRONMENT VARIABLES -->
+<div class="section">
+  <div class="section-label">Environment Variables</div>
+  <div class="code-block">
+    <div class="code-block-header"><span>gcloud functions describe process-payments-v2 --format "json(environmentVariables)"</span><span>JSON</span></div>
+    <div class="code-inner">
+      <div class="line compliant"><span class="line-num">1</span><span class="line-content"><span class="key">"DB_HOST"</span><span class="punct">:</span> <span class="str">"10.0.2.15"</span><span class="punct">,</span></span></div>
+      <div class="line compliant"><span class="line-num"></span><span class="line-content"><span class="comment-ok">// OK: non-sensitive internal endpoint value</span></span></div>
+      <div class="line compliant"><span class="line-num">2</span><span class="line-content"><span class="key">"DB_NAME"</span><span class="punct">:</span> <span class="str">"payments_db"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num">3</span><span class="line-content"><span class="key">"DB_PASSWORD"</span><span class="punct">:</span> <span class="str-bad">"Tr0ub4dor&amp;3!xQ9"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num"></span><span class="line-content"><span class="comment-finding">// FINDING: plaintext database password in env var — store in Secret Manager; bind via --set-secrets flag (SECRET_NAME=secret-id:version), NOT as plain env var</span></span></div>
+      <div class="line finding"><span class="line-num">4</span><span class="line-content"><span class="key">"STRIPE_API_KEY"</span><span class="punct">:</span> <span class="str-bad">"sk_live_4xKj8mN2pQrT9vW1"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num"></span><span class="line-content"><span class="comment-finding">// FINDING (Critical): live Stripe secret key in plaintext — rotate immediately; migrate to Secret Manager with secretAccessor binding on dedicated per-secret IAM policy</span></span></div>
+      <div class="line compliant"><span class="line-num">5</span><span class="line-content"><span class="key">"GCP_PROJECT_ID"</span><span class="punct">:</span> <span class="str">"pci-prod-project"</span></span></div>
+      <div class="line compliant"><span class="line-num"></span><span class="line-content"><span class="comment-ok">// OK: non-sensitive project identifier</span></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- SERVICE ACCOUNT & IAM -->
+<div class="section">
+  <div class="section-label">Service Account &amp; IAM Bindings</div>
+  <div class="code-block">
+    <div class="code-block-header"><span>gcloud projects get-iam-policy pci-prod-project --flatten="bindings[].members" --filter="bindings.members:serviceAccount:process-payments-v2@..."</span><span>YAML</span></div>
+    <div class="code-inner">
+      <div class="line finding"><span class="line-num">1</span><span class="line-content"><span class="key">serviceAccountEmail</span><span class="punct">:</span> <span class="str-bad"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c8b8aba1e5b8baa7ace5b8baa7a2adabbc88a9b8b8bbb8a7bce6afbbadbabea1abada9ababa7bda6bce6aba7a5">[email&#160;protected]</a></span></span></div>
+      <div class="line finding"><span class="line-num"></span><span class="line-content"><span class="comment-finding">// FINDING: default App Engine service account assigned — has broad project-level permissions; create a dedicated per-function service account with only required permissions</span></span></div>
+      <div class="line finding"><span class="line-num">2</span><span class="line-content"><span class="key">role</span><span class="punct">:</span> <span class="str-bad">roles/editor</span></span></div>
+      <div class="line finding"><span class="line-num">3</span><span class="line-content"><span class="key">resource</span><span class="punct">:</span> <span class="str-bad">projects/pci-prod-project</span></span></div>
+      <div class="line finding"><span class="line-num"></span><span class="line-content"><span class="comment-finding">// FINDING (Critical): Editor at project scope — grants read/write on nearly all GCP services across entire project; replace with custom role scoped to specific required resources only</span></span></div>
+      <div class="line compliant"><span class="line-num">4</span><span class="line-content"><span class="key">role</span><span class="punct">:</span> <span class="str">roles/secretmanager.secretAccessor</span></span></div>
+      <div class="line compliant"><span class="line-num">5</span><span class="line-content"><span class="key">resource</span><span class="punct">:</span> <span class="str">projects/pci-prod-project/secrets/db-credentials</span></span></div>
+      <div class="line compliant"><span class="line-num"></span><span class="line-content"><span class="comment-ok">// OK: secretAccessor role scoped to a specific secret resource — correct least-privilege pattern for Secret Manager access</span></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- CLOUD AUDIT LOGS (NEW) -->
+<div class="section">
+  <div class="section-label">Cloud Audit Logs Configuration</div>
+  <div class="code-block">
+    <div class="code-block-header"><span>gcloud projects get-iam-policy pci-prod-project --format json | jq '.auditConfigs'</span><span>JSON</span></div>
+    <div class="code-inner">
+      <div class="line finding"><span class="line-num">1</span><span class="line-content"><span class="key">"auditConfigs"</span><span class="punct">:</span> <span class="punct">[]</span></span></div>
+      <div class="line finding"><span class="line-num"></span><span class="line-content"><span class="comment-finding">// FINDING: no audit log configuration defined at project level — Cloud Functions DATA_READ and DATA_WRITE audit logs are disabled by default; must be explicitly enabled for compliance</span></span></div>
+      <div class="line finding"><span class="line-num">2</span><span class="line-content"><span class="punct">//</span> <span class="str-bad">Missing expected config for cloudfunctions.googleapis.com</span></span></div>
+      <div class="line finding"><span class="line-num"></span><span class="line-content"><span class="comment-finding">// FINDING: DATA_READ events (function invocations) and DATA_WRITE events (deployments) not captured — required for incident reconstruction and audit trail completeness</span></span></div>
+      <div class="line compliant"><span class="line-num">3</span><span class="line-content"><span class="punct">//</span> <span class="str">Expected compliant config:</span></span></div>
+      <div class="line compliant"><span class="line-num">4</span><span class="line-content"><span class="key">"service"</span><span class="punct">:</span> <span class="str">"cloudfunctions.googleapis.com"</span><span class="punct">,</span></span></div>
+      <div class="line compliant"><span class="line-num">5</span><span class="line-content"><span class="key">"auditLogConfigs"</span><span class="punct">:</span> <span class="punct">[</span><span class="key">"logType"</span><span class="punct">:</span> <span class="str">"DATA_READ"</span><span class="punct">},</span> <span class="punct">{</span><span class="key">"logType"</span><span class="punct">:</span> <span class="str">"DATA_WRITE"</span><span class="punct">}]</span></span></div>
+      <div class="line compliant"><span class="line-num"></span><span class="line-content"><span class="comment-ok">// Required: enable both DATA_READ and DATA_WRITE for cloudfunctions.googleapis.com at project level via IAM audit config</span></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- IAM RECOMMENDER -->
+<div class="section">
+  <div class="section-label">IAM Recommender Output</div>
+  <div class="code-block">
+    <div class="code-block-header"><span>gcloud recommender recommendations list --recommender=google.iam.policy.Recommender --project=pci-prod-project --format json</span><span>JSON</span></div>
+    <div class="code-inner">
+      <div class="line finding"><span class="line-num">1</span><span class="line-content"><span class="key">"description"</span><span class="punct">:</span> <span class="str-bad">"Service account has not used 847 of 1,203 granted permissions in the past 90 days"</span><span class="punct">,</span></span></div>
+      <div class="line finding"><span class="line-num">2</span><span class="line-content"><span class="key">"recommenderSubtype"</span><span class="punct">:</span> <span class="str-bad">"REMOVE_EXCESS_PERMISSIONS"</span></span></div>
+      <div class="line finding"><span class="line-num"></span><span class="line-content"><span class="comment-finding">// FINDING: IAM Recommender identifies 847 of 1,203 permissions unused in 90 days — excess permissions expand blast radius; action on recommendations is required; document exceptions</span></span></div>
+    </div>
+  </div>
+</div>
+
+<!-- FINDINGS SUMMARY -->
+<div class="findings-summary">
+  <div class="findings-summary-title">&#9888; Assessment Findings Summary — 11 Findings Identified</div>
+  <div class="finding-header">
+    <span>#</span><span>Finding</span><span>Severity</span><span>Remediation</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">1</span>
+    <span class="finding-desc">Deprecated runtime: nodejs10 (EOL 2021, active CVEs)</span>
+    <span><div class="severity sev-high">High</div></span>
+    <span class="finding-remediation">Redeploy with --runtime nodejs20; test function behavior; update package.json engine constraints</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">2</span>
+    <span class="finding-desc">maxInstances: 0 — no concurrency ceiling configured</span>
+    <span><div class="severity sev-medium">Medium</div></span>
+    <span class="finding-remediation">Set --max-instances to business-justified value; document in runbook with rationale</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">3</span>
+    <span class="finding-desc">ingressSettings: ALLOW_ALL — public internet invocation permitted</span>
+    <span><div class="severity sev-high">High</div></span>
+    <span class="finding-remediation">Change to ALLOW_INTERNAL_AND_GCLB; route external traffic through Cloud Load Balancing with Cloud Armor WAF</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">4</span>
+    <span class="finding-desc">vpcConnector: null — no VPC isolation; egress is unrestricted to public internet</span>
+    <span><div class="severity sev-high">High</div></span>
+    <span class="finding-remediation">Create Serverless VPC Access connector in function's subnet; attach with --vpc-connector; set --egress-settings all-traffic</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">5</span>
+    <span class="finding-desc">Plaintext DB_PASSWORD in environment variable</span>
+    <span><div class="severity sev-high">High</div></span>
+    <span class="finding-remediation">Store in Secret Manager; deploy with --set-secrets DB_PASSWORD=db-password:latest (secret env var binding)</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">6</span>
+    <span class="finding-desc">Live STRIPE_API_KEY in plaintext environment variable — rotate immediately</span>
+    <span><div class="severity sev-critical">Critical</div></span>
+    <span class="finding-remediation">Rotate key in Stripe dashboard; create Secret Manager secret; bind with --set-secrets; grant SA secretAccessor on that secret only</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">7</span>
+    <span class="finding-desc">Default App Engine service account used — broad project-level permissions inherited</span>
+    <span><div class="severity sev-high">High</div></span>
+    <span class="finding-remediation">Create SA <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="cbbbb9a4a8aeb8b8e6bbaab2a6aea5bfb8e6b8aa8bbba8a2e6bbb9a4afe6bbb9a4a1aea8bfe5a2aaa6e5acb8aeb9bda2a8aeaaa8a8a4bea5bfe5a8a4a6">[email&#160;protected]</a>; assign with --service-account flag; remove default SA bindings</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">8</span>
+    <span class="finding-desc">roles/editor at project scope — near-wildcard read/write permissions on all GCP services</span>
+    <span><div class="severity sev-critical">Critical</div></span>
+    <span class="finding-remediation">Remove editor binding; create custom role with only cloudfunctions.functions.invoke, pubsub.topics.publish, and specific required permissions</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">9</span>
+    <span class="finding-desc">Cloud Audit Logs not configured — DATA_READ and DATA_WRITE events not captured</span>
+    <span><div class="severity sev-high">High</div></span>
+    <span class="finding-remediation">Enable DATA_READ + DATA_WRITE audit logs for cloudfunctions.googleapis.com via gcloud projects set-iam-policy audit config</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">10</span>
+    <span class="finding-desc">IAM Recommender: 847 unused permissions not actioned in 90+ days</span>
+    <span><div class="severity sev-medium">Medium</div></span>
+    <span class="finding-remediation">Review and apply IAM Recommender suggestions; document any exceptions; re-run recommender after 30 days to validate reduction</span>
+  </div>
+
+  <div class="finding-row">
+    <span class="finding-num">11</span>
+    <span class="finding-desc">IAM Recommender: bound at project level — resource scope not reduced to required services</span>
+    <span><div class="severity sev-high">High</div></span>
+    <span class="finding-remediation">Replace project-level bindings with resource-level bindings on specific Cloud Storage buckets, Pub/Sub topics, and Firestore collections as required by function</span>
+  </div>
+
+</div>
+</body>
+</html>
